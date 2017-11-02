@@ -4,12 +4,41 @@ use Think\Controller;
 class DefaultController extends DomainController {
     /*资讯动态*/
     public function hotzixun(){
-    	$where['kind'] = '3';       
-        $Data = M('p_volunteer_encyclopedia');
+        $studentid=$_POST['studentid'];
+        $who['StudentID']=$studentid;
+        $user=M('student')->where($who)->field('Xian')->find();
+        $cxian['ProvincesID']=$user['xian'];
+        $cxians=M('provinces')->where($cxian)->find();
+        //市
+        $cshi['ProvincesID']=$cxians['pid'];
+        $cshis=M('provinces')->where($cshi)->find();
+        //省
+        $csheng['ProvincesID']=$cshis['pid'];
+        $cshengs=M('provinces')->where($csheng)->field('ProvincesName')->find();
+        $provincename=$cshengs['provincesname'];
+        if($provincename=="新疆维吾尔自治区"){
+               $newprovincename="新疆";
+            }elseif($provincename=="西藏自治区"){
+               $newprovincename="西藏";
+            }elseif($provincename=="宁夏回族自治区"){
+               $newprovincename="宁夏";
+            }elseif($provincename=="广西壮族自治区"){
+               $newprovincename="广西";
+            }elseif($provincename=="内蒙古自治区"){
+               $newprovincename="内蒙古";
+            }elseif($provincename=="香港特别行政区"){
+               $newprovincename="港澳";
+            }elseif($provincename=="澳门特别行政区"){
+               $newprovincename="港澳";
+            }else{
+               $a=mb_strlen( $provincename,'utf8' );
+               $newprovincename=mb_substr( $provincename,0,$a-1,'utf8' );
+            }
+        $Data = M('p_volunteer_encyclopedia_three');
         $qg = $Data->where($where)->field('id,time,name')->order('time desc')->limit(1)->select(); // 全国资讯
 
-        $wheres['kind'] = 2;
-        $sql = M('p_volunteer_encyclopedia');
+        $wheres['province'] = $newprovincename;
+        $sql = M('p_volunteer_encyclopedia_two');
         $zx = $sql->where($wheres)->field('id,name,time')->order('time desc')->limit(1)->select(); //最新资讯
 
         $data=array(

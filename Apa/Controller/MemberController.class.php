@@ -234,6 +234,275 @@ class MemberController extends DomainController {
         
 
     }
+    //关注专业
+    public function guanzhuzhuanye(){
+
+        echo "功能待与pc端确认！";
+    }
+    //交流话题
+    public function jiaoliuhuati(){
+
+        echo "功能待与pc端确认！";
+    }
+    //学校通知
+    public function xuexiaotongzhi(){
+
+        echo "功能待与pc端确认！";
+    }
+    //Ta的课表
+    public function tadekebiao(){
+
+        echo "功能待与pc端确认！";
+    }
+    /*Ta的老师*/
+    public function tadelaoshi(){
+        $stuid=$_POST['studentid'];
+        $wheretid['StudentID']=$stuid;
+        $teacherid=M('student')->where($wheretid)->field('TeacherID')->find();
+        $tid=$teacherid['teacherid'];
+        if($tid){
+           $teacher=M('teacher')->where('TeacherID='.$tid)->select();
+           $data=$teacher;
+           $this->apiReturn(100,'读取成功',$data);
+        }else{
+            $data="孩子还没有选择老师！";
+            $this->apiReturn(0,'读取失败',$data);
+        }
+        
+    }
+    //Ta的笔记
+    public function tadebiji(){
+
+        $sid=$_POST['studentid'];
+        $nianji=$_POST['nianji']?$_POST['nianji']:"全部";
+        $kemu=$_POST['kemu']?$_POST['kemu']:"全部";
+        $name=$_POST['name']?$_POST['vname']:"";
+        if($nianji){
+            if($nianji=='全部'){
+               if($kemu){
+                 if($kemu=='全部'){
+                    if($name){
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.vname']=array('like',$name);
+                    }else{
+                       $who['t_video_notes.studentid']=$sid;
+                    }
+                 }else{
+                    if($name){
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.kemu']=$kemu; 
+                       $who['t_video_notes.vname']=array('like',$name);
+                    }else{
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.kemu']=$kemu; 
+                    }
+
+                 }
+               }
+            }else{
+               if($kemu){
+                 if($kemu=='全部'){
+                    if($name){
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.nianji']=$nianji;
+                       $who['t_video_notes.vname']=array('like',$name);
+                    }else{
+                       $who['t_video_notes.nianji']=$nianji;
+                       $who['t_video_notes.studentid']=$sid;
+                    }
+                 }else{
+                    if($name){
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.nianji']=$nianji;
+                       $who['t_video_notes.kemu']=$kemu; 
+                       $who['t_video_notes.vname']=array('like',$name);
+                    }else{
+                       $who['t_video_notes.studentid']=$sid;
+                       $who['t_video_notes.nianji']=$nianji;
+                       $who['t_video_notes.kemu']=$kemu; 
+                    }
+
+                 }
+               }
+
+            }
+
+        }
+        $one=M('video_notes')->where($who)->select(); 
+        if($one){
+            // $count=M('video_notes')->where($who)->count(); //分页,总记录数
+            // $Page= new \Think\Page($count,9);
+            // $show= $Page->show();//分页,显示输出
+            $info=M('video_notes')->where($who)->join('left join t_video_dezhi on t_video_notes.kid=t_video_dezhi.kid')->field('t_video_notes.*,t_video_dezhi.kimage')->select();
+            $data=$info;
+            $this->apiReturn(100,'操作成功',$data);
+        }else{
+            $data=0;
+            $this->apiReturn(100,'操作成功',$data);
+        }
+    }
+    //Ta的笔记
+    public function kaoshichengji(){
+
+        echo "功能待与pc端确认！";
+    }
+    //教师评价
+    public function jiaoshipingjia(){
+
+        $student['studentid'] = $_POST['studentid'];
+        $type = $_POST['type'];
+        
+        if(!empty($student)){
+            switch($type){
+                case "测试结果":
+                    $where['t_student_test_zonghe.studentid'] = $student['studentid'];
+                    $model = M('student_test_zonghe');
+                    $data  = $model->join('t_comment_zhuanyeqingxiang on t_comment_zhuanyeqingxiang.zid = t_student_test_zonghe.id')
+                    ->where($where)->order('t_student_test_zonghe.id DESC')->field('t_student_test_zonghe.*')->select();
+                    //dump($where);
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = '专业倾向报告';
+                    }
+                    break;
+                case "选科记录":
+                    $where['t_xuekebianzu.studentid'] = $student['studentid'];
+                    $model = M('xuekebianzu');
+                    $data  = $model->join('t_comment_xuankejilu on t_comment_xuankejilu.xid = t_xuekebianzu.id')
+                    ->where($where)->order('t_xuekebianzu.id DESC')->field('t_xuekebianzu.*')->select();
+                    foreach ($data as $key => $value) {
+                        $xuanke[] = $value['xname1'];
+                        $xuanke[] = $value['xname2'];
+                        $xuanke[] = $value['xname3'];
+                        $data[$key]['vname'] = implode(',',array_filter($xuanke));
+                    }
+                    break;
+
+                case "活动记录":
+                    $where['t_da_activation_record.StudentID'] = $student['studentid'];
+                    $model = M('da_activation_record');
+                    $data  = $model->join('t_comment_huodongjilu on t_comment_huodongjilu.hid = t_da_activation_record.id')
+                    ->where($where)->order('t_da_activation_record.id DESC')->field('t_da_activation_record.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['handline'];
+                    }
+                    break;
+
+                case "成长档案":
+                    $where['t_da_chengzhangdangan.studentid'] = $student['studentid'];
+                    $model = M('da_chengzhangdangan');
+                    $data  = $model->join('t_comment_chengzhangdangan on t_comment_chengzhangdangan.cid = t_da_chengzhangdangan.id')
+                    ->where($where)->order('t_da_chengzhangdangan.id DESC')->field('t_da_chengzhangdangan.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+
+                    break;
+
+                case "量化评价":
+                    $where['t_da_lianghuapj.studentid'] = $student['studentid'];
+                    $model = M('da_lianghuapj');
+                    $data  = $model->join('t_comment_zonghelianghua on t_comment_zonghelianghua.zid = t_da_lianghuapj.id')
+                    ->where($where)->order('t_da_lianghuapj.id DESC')->field('t_da_lianghuapj.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+                    break;
+
+                case "陈述报告":
+                    $where['t_ziwochenshu.studentid'] = $student['studentid'];
+                    $model = M('ziwochenshu');
+                    $data  = $model->join('t_comment_ziwochenshu on t_comment_ziwochenshu.zid = t_ziwochenshu.id')
+                    ->where($where)->order('t_ziwochenshu.id DESC')->field('t_ziwochenshu.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+                    break;
+
+                case "志愿填报":
+                    $where['t_d_user_planned.user_id'] = $student['studentid'];
+                    $model = M('d_user_planned');
+                    $data  = $model->join('t_comment_monizhiyuan on t_comment_monizhiyuan.mid = t_d_user_planned.id')
+                    ->where($where)->order('t_d_user_planned.id DESC')->field('t_d_user_planned.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = '模拟志愿';
+                        $data[$key]['time'] = $value['create_date'];
+                    }
+                    break;
+            }
+            $this->apiReturn(100,'请求成功',$data);
+        }
+    }
+    public function baokaofangan(){
+
+        $sid=$_POST['studentid'];
+             $which['user_id']=$sid;
+             $plands=M('d_user_planned')->where($which)->select();//志愿填报记录
+             if($plands){
+                 foreach ($plands as $k => $v) {
+                     $provincename['ProvinceID']=$v['province_id'];
+                     $provininfos=M('provinces')->where($provincename)->find();
+                     $studentname['StudentID']=$v['user_id'];
+                     $studentinfos=M('student')->where($studentname)->find();
+                     $batch['id']=$v['batchid'];
+                     $batchinfos=M('d_batch')->where($batch)->find();
+                     $plands[$k]['province']=$provininfos['provincesname'];
+                     $plands[$k]['studentname']=$studentinfos['studentname'];
+                     $plands[$k]['studentid']=$studentinfos['studentid'];
+                     $plands[$k]['batch']=$batchinfos['name'];
+                 }
+             }
+             $data=$plands;
+             $this->apiReturn(100,'操作成功',$data);
+    }
+    public function modifygerenxinxi(){
+        $phone=$_POST['phone'];
+        $parentid=$_POST['parentid'];
+        $where['parentid']=$parentid;
+        $data['phone']=$phone;
+        $res=M('parent')->where($where)->save($data);
+        if($res){
+           $data="保存成功";
+           $this->apiReturn(100,'操作成功',$data);
+
+        }else{
+           $data="保存失败";
+           $this->apiReturn(0,'操作成功',$data);
+        }
+
+    }
+    public function modifytouxiang(){
+
+        $pid=$_POST['parentid'];
+        $upload = new \Think\Upload();// 实例化上传类
+        $upload->autoSub=false;
+        $upload->maxSize   =     3145728 ;// 设置附件上传大小
+        $upload->exts      =     array('jpg','png','gif', 'jpeg');// 设置附件上传类型
+        $upload->rootPath  =     './Public/Parent/images/touxiang/'; // 设置附件上传根目录
+        
+        $info   =   $upload->upload();
+        if($info){
+            foreach($info as $file){
+                $touxiang= $file['savepath'].$file['savename'];
+                $name=$file['savename'];
+            }
+            $where['parentid']=$pid;
+            $dat['touxiang']=$name;
+            $res=M('parent')->where($where)->save($dat);
+            if($res){
+              $data['msg']="修改头像成功！";
+              $data['touxiang']=$name;
+              $this->apiReturn(100,'请求成功',$data);
+            }else{
+              $data="修改头像失败！";
+              $this->apiReturn(0,'请求失败',$data); 
+            }
+            
+        }else{
+            $data="上传头像失败";
+            $this->apiReturn(0,'操作失败',$data);
+        }   
+    }
+
 }
 
 

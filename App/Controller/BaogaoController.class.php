@@ -41,14 +41,23 @@ class BaogaoController extends DomainController {
             $where['numbers']=$_POST['num'];
             $where['studentid']=$studentid;
             $info['teacherid']=$student['teacherid'];
-            $true=M('student_test_zonghe')->where($where)->save($info);
+            if($info['teacherid']){
+              $true=M('student_test_zonghe')->where($where)->save($info);
+
+            }else{
+              $data='该学生还没有老师无法发送';
+              $this->apiReturn(100,'提交成功',$data);
+            }
+            
         }
         
         if($true){
-        	$data=array(
-            'infos'=>'发送老师成功'
-	        );
+        	$data='发送老师成功';
 	        $this->apiReturn(100,'提交成功',$data);
+        }else{
+          $data='发送老师失败';
+          $this->apiReturn(0,'提交失败',$data);
+
         }
     }
     /*获取报告列表*/

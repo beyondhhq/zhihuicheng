@@ -8,9 +8,9 @@ class XuekeController extends DomainController {
         $where['xueke'] = array('neq', ' ');
         $where['_logic'] = 'and';
         $number = M('student_test_result')->where($where)->field('xueke,numbers')->select();
-        if(count($number) > '3' or count($number) == '3'){
+        if(count($number) > '4' or count($number) == '4'){
             $data=array(
-                'error'=>"最多测试3次"
+                'error'=>"最多测试4次"
             );
             $this->apiReturn(0,'读取失败',$data);
         }else{

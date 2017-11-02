@@ -8,11 +8,12 @@ class MingjiazhidaoController extends DomainController {
       $category=$_POST['category'];
       if($category){
         $category=$_POST['category'];
+        $where['cid']=$category;
+        $info=M('mjzd_news')->where($where)->order('browse desc')->field('id,cid,category,thumb,title,stitle,abstract,browse,year')->select();
       }else{
-        $category='1';//作文
+        //$category='1';//作文
+        $info=M('mjzd_news')->where(1)->order('browse desc')->field('id,cid,category,thumb,title,stitle,abstract,browse,year')->group('cid')->select();
       }
-      $where['cid']=$category;
-      $info=M('mjzd_news')->where($where)->order('browse desc')->field('id,cid,category,thumb,title,stitle,abstract,browse,year')->select();
       foreach ($info as $k => $v) {
         $info[$k]['comment']=M('mjzd_comment')->where("{$v['id']}=mid")->count();
       }
@@ -26,22 +27,33 @@ class MingjiazhidaoController extends DomainController {
     /*作文详情*/
     public function detail(){
       $id=$_POST['id'];
+      $studentid=$_POST['studentid'];
       $who['id']=$id;
       $val=array(
           'browse'=>array('exp','browse+1'),
       );
       M('mjzd_news')->where($who)->save($val);//增加浏览次数
+      $wheres['pid']=$id;
+      $wheres['studentid']=$studentid;
+      $true=M('mjzd_zan')->where($wheres)->find();
       $detail=M('mjzd_news')->where($who)->find();
+      if($true){
+
+        $detail['status']=1;
+      }else{
+        $detail['status']=0;
+      }
 
       $where['mid']=$id; //文章id
-      $info=M('mjzd_comment')->where($where)->order('id desc')->select();
+      $info=M('mjzd_comment')->where($where)->alias('a')->join('t_student b on a.studentid=b.StudentID')->field('a.*,b.Img')->order('id desc')->select();
+
       foreach($info as $k=>$v){
             $info[$k]['studentname']=$v['studentname'];
             $info[$k]['content']=$v['content'];
             $info[$k]['likes']=$v['likes'];
             $info[$k]['comment']=$v['comment'];
             $info[$k]['time']=$v['time'];
-            $info[$k]['touxiang']=$v['touxiang'];
+            $info[$k]['touxiang']=$v['img'];
       }
       $data=array(
         'infos'=>$detail,
@@ -105,6 +117,41 @@ class MingjiazhidaoController extends DomainController {
           $this->apiReturn(100,'提交成功',$data);
       }
     }
+    public function dianzans(){
+      $studentid=$_POST['studentid'];
+      $pid=$_POST['id'];
+      $which['id']=$pid;
+      $where['pid']=$pid;
+      $where['studentid']=$studentid;
+      $wheres['StudentID']=$studentid;
+      $sname=M('student')->where($wheres)->field('StudentName')->find();
+      $info['pid']=$pid;
+      $info['studentid']=$studentid;
+      $info['studentname']=$sname['studentname'];
+      $info['time']=date('Y-m-d H:i:s');
+
+      $true=M('mjzd_zan')->where($where)->find();
+      
+      if($true){ //已点赞
+          M('mjzd_zan')->where($where)->delete();
+          $val=array(
+              'likes'=>array('exp','likes-1'),
+          );
+          M('mjzd_news')->where($which)->save($val);
+
+          $this->apiReturn(100,'取消成功',0);
+
+      }else{ //无点赞记录
+          M('mjzd_zan')->add($info);
+          $val=array(
+              'likes'=>array('exp','likes+1'),
+          );
+          M('mjzd_news')->where($which)->save($val);
+          
+          $this->apiReturn(100,'点赞成功',1);
+    
+      }
+   }
     /*获取回复*/
     public function getreply(){
       $info['cid']=$_POST['id'];

@@ -25,8 +25,8 @@ class StudentController extends DomainController {
             //省
             $csheng['ProvincesID']=$cshis['pid'];
             $cshengs=M('provinces')->where($csheng)->find();
-
             $user['sheng']=$cshengs['provincesname'];
+            $user['provinceid']=$cshengs['provincesid'];
             $user['nianji']=$classinfo['grade'];
             $user['banji']=$classinfo['classname'];
             $user['school']=$schoolinfo['schoolname'];
@@ -56,7 +56,7 @@ class StudentController extends DomainController {
         $number=I('post.cardnumber'); //卡号
         $pass=I('post.password'); //密码
         $where['card_number']= $number;
-        $where['card_pass']=md5($pass);
+        $where['card_pass']=$pass;
         $true=M('activation')->where($where)->find();
         if($true){
             $status=$true['status'];
@@ -85,23 +85,22 @@ class StudentController extends DomainController {
             $this->apiReturn(0,'请求成功',$data);
         }
     }
-    /*填写家长卡号步骤*/
-    public function parentcard(){
-        $parentcard=$_POST['parentcard'];
-        $where['card_number']=$parentcard;
-        $true=M('parentcard')->where($where)->find();
-        if(!$true){
-            $data=array(
-                    'error'=>'家长卡号不存在'
-            );
-            $this->apiReturn(0,'请求成功',$data);
+    /*ajax检查数据库里是否有此学生*/
+    public function checkstudent($student_name,$enrollment_number){
+        $student_name=$_POST['studentname'];
+        $enrollment_number=$_POST['xuejihao']; 
+        $where['StudentName'] =   $student_name;
+        $where['EnrollmentNo'] =   $enrollment_number;
+        $student = M('Student')->where($where)->find();
+        if($student){
+          $data="该学生已录入系统";
+          $this->apiReturn(0,'继续失败',$data);
         }else{
-            $data=array(
-                    'parentcard'=>$parentcard
-            );
-            $this->apiReturn(100,'请求成功',$data);
+          $data="可以录入";
+          $this->apiReturn(100,'操作成功',$data);
         }
     }
+
     /*填写账号名和密码*/
     public function userpass(){
         $pass=$_POST['password'];
@@ -190,108 +189,144 @@ class StudentController extends DomainController {
         $data=array('2015','2016','2017');
         $this->apiReturn(100,'请求成功',$data);
     }
-    /*提交绑定*/
-    public function addinfos(){
-        $year=$_POST['year']; //入学年份
-        $class=$_POST['class'];//班级
-        $schoolid=$_POST['schoolid'];//学校id
-        $cid=$_POST['cid']; //卡id
-        $parentcard=$_POST['parentcard']; //家长卡号
-        $studentname=$_POST['studentname']; //姓名
-        $loginname=$_POST['loginname']; //账号
-        $password=$_POST['password']; //密码
-        $sex=$_POST['sex']; //性别
-        $xianid=$_POST['xianid']; //县级id
-        $type=$_POST['type']; //文理类型
-        $touxiang=$_POST['touxiang']; //头像
+    /*检查用户名是否重复*/
+    public function getStudentByLoginname(){
+        $loginname=$_POST['loginname'];
+        $where['LoginName'] =   $loginname;
+        $student = M('student')->where($where)->find();
+        if($student){
+          $data="此账号已存在请更换其他账号！";
+          $this->apiReturn(0,'继续失败',$data);
+        }else{
+          $data="可以使用";
+          $this->apiReturn(100,'操作成功',$data);
+        }
+    }
+    public function updateActivationById($id,$params){
+        
+        return $result;
+    }
 
-        if(!$touxiang){
-            $touxiang='person-touxiang.jpg';
+    //激活信息入库
+    public function addinfo(){
+        if(IS_POST){
+            $upload = new \Think\Upload();// 实例化上传类
+            $upload->autoSub=false;
+            $upload->maxSize   =     3145728 ;// 设置附件上传大小
+            $upload->exts      =     array('jpg', 'gif', 'png', 'jpeg');// 设置附件上传类型
+            $upload->rootPath  =     './Public/Home/images/touxiang/'; // 设置附件上传根目录
+            $info   =   $upload->upload();
+            if($info){
+                foreach($info as $file){
+                    $touxiang= $file['savepath'].$file['savename'];
+                }
+                $image = new \Think\Image();
+                $image->open("./Public/Home/images/touxiang/$touxiang");
+                $image->thumb(210, 210,\Think\Image::IMAGE_THUMB_CENTER)->save("./Public/Home/images/touxiang/$touxiang");
+                $data['Img']=$touxiang;
+            }
+            
+            //绑卡操作
+            //判断当前卡是否已经激活
+            $where['id']=$_POST['cid'];
+            $where['status']='0';
+            $isactivate = M('activation')->where($where)->find();
+            if(empty($isactivate)){
+
+                $this->error('当前卡号已被激活！');
+
+            }else{
+                $number = $isactivate['card_number'];
+                $parent = str_replace('S','F',$number);
+                $data['Cid']=$_POST['cid'];
+                $data['LoginName']=$_POST['loginname'];
+                $data['Xian']=$_POST['xian'];
+                $data['Tel']=$_POST['phoneNumber']; 
+                $data['PassWord']=md5($_POST['password']);
+                $data['parentcard']=$parent;
+                $data['Type']=$_POST['type'];
+                $data['Sex']=$_POST['sex'];
+                $data['ClassID']=$_POST['classid'];
+                $data['SchoolID']=$_POST['schoolid'];
+                $data['nianji']=$_POST['nianji'];
+                $data['Type']=$_POST['type'];
+                $data['StudentName']=$_POST['studentname'];
+                $data['EnrollmentNo']=$_POST['xjhao'];
+                $studentmodel = M('student');
+                $true = $studentmodel->where($studentwhere)->add($data);
+                if($true){
+                
+                  $activationwhere['id']=$_POST['cid'];
+                  $change['status']='1';
+                  $change['actime']=date('Y-m-d H:i:s');
+                  $res=M('activation')->where($activationwhere)->save($change);
+                  if($res){
+                    $data="学生卡激活绑定成功!";
+                    $this->apiReturn(100,'请求成功',$data);
+                  }else{
+                    $data="学生卡绑定成功激活失败!";
+                    $this->apiReturn(0,'请求失败',$data);
+                  }
+                }else{
+                  $data='学生卡激活绑定失败';
+                  $this->apiReturn(0,'请求失败',$data);
+                }
+
+            }
+            
+                
+            
         }
 
-        $nowm=date('m'); //当前月
-        $nowy=date('Y'); //当前年
-        $cha=$nowy - $year;
-        if($cha==0){
-            $grade='高一';//高1
-        }elseif($cha==1){
-            if($nowm >= 9){
-               $grade='高二';//高2
-            }else{
-               $grade='高一';//高1
-            }
-        }else{//$cha==2
-            if($nowm >= 9){
-               $grade='高三';//高3
-            }else{
-               $grade='高二';//高2
-            }
+    }
+    //根据手机号检查是否注册
+    public function findstudentidbymobile(){
+        $hao=$_POST['shoujihao'];
+        $where['Tel']=$hao;
+        $res=M('student')->where($where)->field('StudentID')->find();
+        if($res){
+          $data=$res['studentid'];
+          $this->apiReturn(100,'请求成功',$data);
+        }else{
+          $data='该手机号还没有绑定注册信息，无法修改密码!';
+          $this->apiReturn(100,'请求成功',$data);
         }
-        //查询班级 无数据创建班级 strat
-        $clas['Grade']=$grade;
-        $clas['ClassName']=$class;
-        $clas['SchoolID']=$schoolid;
-        $clas['_logic'] = 'and';
-        $classinfos=M('class')->where($clas)->find();
-        if(!$classinfos){
-            $cla['Grade']=$grade;
-            $cla['ClassName']=$class;
-            $cla['SchoolID']=$schoolid;
-            M('class')->add($cla);
+    }
+    //修改新密码
+    public function modifyoldmima(){
+        $sid=$_POST['studentid'];
+        $password=$_POST['password'];
+        $rpassword=$_POST['rpassword'];
+        if($password==$rpassword){
+          $save['PassWord']=md5($password);
+          $where['StudentID']=$sid;  
+          $res=M('student')->where($where)->save($save);
+          if($res){
+            $data='修改密码成功';
+            $this->apiReturn(100,'请求成功',$data);
+          }else{
+            $data='修改密码失败';
+            $this->apiReturn(0,'请求失败',$data);
+          }
+        }else{
+          $data="两次输入的密码不一样请重新输入!";
+          $this->apiReturn(0,'请求失败',$data);
         }
-        //end
-        //查询班级id班主任id
-        $lass['Grade']=$grade;
-        $lass['ClassName']=$class;
-        $lass['SchoolID']=$schoolid;
-        $lass['_logic'] = 'and';
-        $classid=M('class')->where($lass)->find();
-        //获取数据
-        $data['Cid']=$cid;
-        $data['parentcard']=$parentcard;
-        $data['StudentName']=$studentname;
-        $data['LoginName']=$loginname;
-        $data['PassWord']=md5($password);
-        $data['Sex']=$sex;
-        $data['Img']=$touxiang;
-        $data['SchoolID']=$schoolid;
-        $data['Xian']=$xianid;
-        $data['nianji']=$year;
-        $data['ClassID']=$classid['classid'];
-        $data['TeacherID']=$classid['teacherid'];
-        $data['Type']=$type;
-        //信息入库
-        $true=M('student')->add($data);
-        if($true){
-            //更新卡号激活时间
-            $where['id']=$cid;
-            $change['status']='1';
-            $change['actime']=date('Y-m-d H:i:s');
-            M('activation')->where($where)->save($change);
-            //查询数据
-            $who['Cid']=$cid;
-            $user=M('student')->where($who)->find();
-            $data=array(
-                'studentid'=>$user['studentid'],
-                'studentname'=>$user['studentname'],
-                'classid'=>$user['classid'],
-                'teacherid'=>$user['teacherid'],
-                'schoolid'=>$user['schoolid'],
-                'isvip'=>$user['isvip'],
-                'cid'=>$user['cid'],
-                'sex'=>$user['sex'],
-                'type'=>$user['type'],
-                'xian'=>$user['xian'],
-                'nianji'=>$user['nianji'],
-                'parentcard'=>$user['parentcard'],
-                'touxiang'=>$touxiang,
-                'loginname'=>$loginname,
-                'password'=>$password
-            );
+
+    }
+    //修改新手机号
+    public function modifymobile(){
+        $sid=$_POST['studentid'];
+        $shoujihao=$_POST['shoujihao'];
+        $where['StudentID']=$sid; 
+        $save['Tel']=$shoujihao;
+        $res=M('student')->where($where)->save($save);
+        if($res){
+            $data='修改密码成功';
             $this->apiReturn(100,'请求成功',$data);
         }else{
-            $data='绑定失败，请返回重试';
-            $this->apiReturn(0,'绑定失败',$data);
+            $data='修改密码失败';
+            $this->apiReturn(0,'请求失败',$data);
         }
     }
 

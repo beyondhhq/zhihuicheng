@@ -177,10 +177,9 @@ class MemberController extends DomainController{
 
         $where['teacherid']=$_POST['teacherid'];
 
-        $studentname=$_GET['studentname'];
+        $studentname=$_POST['studentname'];
         if($studentname !=''){
-            $where['studentname']=array("like","%{$_GET['studentname']}%");
-            $this->assign('studentname',$studentname);
+            $where['studentname']=array("like","%{$_POST['studentname']}%");
         }
         // $count=M('xuekebianzu')->where($where)->count(); //分页,总记录数
         // $Page= new \Think\Page($count,5);
@@ -259,7 +258,7 @@ class MemberController extends DomainController{
         $where['ID']=$id;
         $jilu=M('da_activation_record')->where($where)->find();
         $json=json_decode($jilu['jsons'],true);
-        $jilu['newjson']=$json;
+        $jilu['newjson']=$json; 
         $comment['hid']=$id;
         $commenture=M('comment_huodongjilu')->where($comment)->order('id DESC')->select();
         
@@ -406,7 +405,7 @@ class MemberController extends DomainController{
     /*陈述报告列表*/
     public function teacher_chenshubaogao(){
 
-        $where['teacherid']=$_POST['teacherid'];
+        $where['a.teacherid']=$_POST['teacherid'];
 
         $studentname=$_GET['studentname'];
         if($studentname !=''){
@@ -416,7 +415,7 @@ class MemberController extends DomainController{
         // $count=M('ziwochenshu')->where($where)->count(); //分页,总记录数
         // $Page= new \Think\Page($count,5);
         // $show= $Page->show();//分页,显示输出
-        $data=M('ziwochenshu')->where($where)->field('id,studentid,studentname,gradename,title as handline,classname,time,status')->order('time desc')->select();
+        $data=M('ziwochenshu')->where($where)->alias('a')->join('t_student b on a.studentid=b.StudentID')->field('a.id,a.studentid,a.studentname,a.gradename,a.title as handline,a.classname,a.time,a.status,b.Img')->order('time desc')->select();
         $this->apiReturn(100,'操作成功',$data);
 
     }
@@ -424,7 +423,8 @@ class MemberController extends DomainController{
     public function teacher_chenshubaogaocon(){
         $id=$_POST['cid'];
         $where['id']=$id;
-        $jilu=M('ziwochenshu')->where($where)->field('id,studentid,studentname,gradename,title as handline,classname,time,status,content')->find();
+        $jilu=M('ziwochenshu')->where($where)->alias('a')->join('t_student b on a.studentid=b.StudentID')->field('a.id,a.studentid,a.studentname,a.gradename,a.title as handline,a.classname,a.time,a.status,a.content,b.Img')->find();
+
         $comment['zid']=$id;
         $commenture=M('comment_ziwochenshu')->where($comment)->order('id DESC')->select();
         $data['info']=$jilu;
@@ -466,7 +466,7 @@ class MemberController extends DomainController{
         foreach ($teacherinfo as $k => $v) {
             $studentids .=$v['studentid'].','; //学生id
         }
-        $which['sendteacher']='1';
+        //$which['sendteacher']='1';
         if($name){
              $student['StudentName']=$name;
              $student['TeacherID']=$_POST['teacherid'];
@@ -496,6 +496,7 @@ class MemberController extends DomainController{
              // $Page= new \Think\Page($count,10);
              // $show= $Page->show();//分页,显示输出
              $plands=M('d_user_planned')->where($which)->select();//志愿填报记录
+             print_R($plands);exit;
              if($plands){
                  foreach ($plands as $k => $v) {
                      $provincename['ProvinceID']=$v['province_id'];
@@ -558,22 +559,24 @@ class MemberController extends DomainController{
     public function monipinglun(){
         
             $c_id=$_POST['bid'];       
-            $comment['zid']=$c_id;
+            $comment['mid']=$c_id;
             $comment['studentid']=$_POST['studentid'];
             $comment['teacherid']=$_POST['teacherid'];
             $comment['teachername']=$_POST['teachername'];
             $comment['touxiang']=$_POST['touxiang'];
             $comment['content']=$_POST['content'];
             $comment['time']=date('Y-m-d H:i:s');
+           
             $true=M('comment_monizhiyuan')->add($comment);
             if($true){
+                $where['id']=$c_id;
                 $which['status']='1';//状态 已评
-                M('ziwochenshu')->where($where)->save($which);
+                M('d_user_planned')->where($where)->save($which);
                 $data='1';
                 $this->apiReturn(100,'评论成功',$data);
             }else{
                 $data='0';
-                $this->apiReturn(100,'评论失败',$data);
+                $this->apiReturn(0,'评论失败',$data);
             }
 
 
@@ -794,4 +797,334 @@ class MemberController extends DomainController{
         $this->apiReturn(100,'操作成功',$data);
 
     }
+    //个人课表
+    public function gerenkebiao(){
+     
+       echo "功能待与pc端确认！";
+
+    }
+    //学生课表
+    public function xueshengkebiao(){
+      
+       echo "功能待与pc端确认！";
+
+    }
+    //教师课表
+    public function jiaoshikebiao(){
+       
+       echo "功能待与pc端确认！";
+
+    }
+    //班级课表
+    public function banjikebiao(){
+
+       echo "功能待与pc端确认！";
+
+    }
+    //成绩课表
+    public function chengjichaxun(){
+
+       echo "功能待与pc端确认！";
+
+    }
+    //学习小组
+    public function createxiaozu(){
+       $tid=$_POST['teacherid'];
+       $zuname=$_POST['zuname'];
+       $member=$_POST['member'];
+       // $member=['1014','1015','1016'];
+       $member=json_decode($member,ture);
+       $class = M('class')->where(array('TeacherID'=>$tid))->find();
+       if(!empty($class)){
+       
+            //判断小组是否存在
+            $where['teamname'] = $zuname;
+            if(!empty($where['teamname'])){
+                $where['teacherid'] = $tid;
+                $learnTeamInfo = M('learn_team')->where($where)->find();
+                if(empty($learnTeamInfo)){
+                    //创建小组
+                    $teaminfo['teamname'] = $where['teamname'];
+                    $teaminfo['teacherid'] = $where['teacherid'];
+                    $teaminfo['createtime'] = date('Y-m-d H:i:s');
+                    $learnTeam = M('learn_team')->add($teaminfo);
+                    if($learnTeam){
+                        //添加组员
+                        $sid = $member;
+                        if(!empty($sid)){                            
+                            $i = 0;
+                            $count=count($sid);
+                            foreach($sid as $k=>$v){
+                              $teammembers['teamid'] = $learnTeam;
+                              $teammembers['studentid'] = $v;
+                              $teammembers['createtime'] = date('Y-m-d H:i:s');
+                              $res=M('learn_team_member')->add($teammembers);
+                              $i++;
+                            }
+                            if($i==$count){
+                               $data='创建小组成功';
+                               $this->apiReturn(100,'操作成功',$data);
+                            }else{
+                               $data='创建小组失败';
+                               $this->apiReturn(0,'操作失败',$data);
+                            }
+                        }
+                        
+                    }
+                }else{
+                   $data='该小组已存在，请勿重复创建！';
+                   $this->apiReturn(0,'操作失败',$data);
+                }
+            }
+        
+        }
+    }
+    //学习小组列表
+    public function xiaozulist(){
+       $tid=$_POST['teacherid'];
+       $class = M('class')->where(array('TeacherID'=>$tid))->find();
+       if(!empty($class)){
+            $isClass = 1;
+            //当前教师创建的所有小组
+            $where['teacherid'] = $tid;
+            $data=M('learn_team')->where($where)->select(); 
+           
+            foreach ($data as $key => $value) {
+               $data[$key]['num'] = M('learn_team_member')->where(array('teamid'=>$value['id']))->count();
+            }
+            if($data){
+               
+               $this->apiReturn(100,'操作成功',$data);
+   
+            }else{
+              $data=array();
+              $this->apiReturn(0,'操作失败',$data);
+            }
+        }
+    }
+    //返回某教师下面的学生
+    public function allstudent(){
+       $tid=$_POST['teacherid'];
+       $class = M('class')->where(array('TeacherID'=>$tid))->find();
+       if(!empty($class)){
+            $data = M('student')->where(array('ClassID'=>$class['classid']))->field('StudentID,StudentName,Img')->select();
+       }
+       if($data){
+         
+          $this->apiReturn(100,'操作成功',$data);
+
+       }else{
+          $data=array();
+          $this->apiReturn(100,'操作成功',$data);
+       }
+
+    }
+    //小组详情
+    public function xiaozucon(){
+        $zuid=$_POST['id'];
+        $where['t_learn_team.id']=$zuid;
+        $res=M('learn_team')->join('left join t_learn_team_member on t_learn_team.id=t_learn_team_member.teamid left join t_student on t_learn_team_member.studentid=t_student.StudentID')->where($where)->field('t_learn_team.*,t_student.StudentName,t_student.StudentID,t_student.Img')->select();
+        if($res){
+           $data=$res;
+           $this->apiReturn(100,'操作成功',$data);
+
+        }else{
+           $data=array();
+           $this->apiReturn(0,'操作失败',$data);
+        }
+    }
+    //修改小组
+    public function modifyxiaozu(){
+        $zuid=$_POST['id'];
+        $member=$_POST['member'];
+        $member=json_decode($member,ture);
+        //$member=['1014','1015'];
+        $where['teamid']=$zuid;
+        M('learn_team_member')->where($where)->delete();
+
+        if(!empty($member)){                            
+          $i = 0;
+          $count=count($member);
+          foreach($member as $k=>$v){
+             $teammembers['teamid'] = $zuid;
+             $teammembers['studentid'] = $v;
+             $teammembers['createtime'] = date('Y-m-d H:i:s');
+             $res=M('learn_team_member')->add($teammembers);
+               $i++;
+          }
+          if($i==$count){
+            $data='修改成功';
+            $this->apiReturn(100,'操作成功',$data);
+          }else{
+            $data='修改失败';
+            $this->apiReturn(0,'操作失败',$data);
+          }
+        }
+
+
+
+    }
+    //删除小组
+    public function delxiaozu(){
+        $zuid=$_POST['id'];
+        $wherer['id']=$zuid;
+        $res=M('learn_team')->where($wherer)->delete();
+        if($res){
+          
+           $where['teamid']=$zuid;
+           $resres=M('learn_team_member')->where($where)->delete();
+           if($resres){
+             $data='删除成功';
+             $this->apiReturn(100,'操作成功',$data);
+           }else{
+             $data='删除失败';
+             $this->apiReturn(0,'操作失败',$data);
+           }
+
+        }
+
+    }
+    //关注院校
+    public function guanzhuyuanxiao(){
+        $tid=$_POST['teacherid'];
+
+        $where['t_teacher_collect.teacherid'] = $tid;
+        $where['t_teacher_collect.schoolid'] = array('neq','');
+
+        $name=$_GET['schoolname'];
+        if(!empty($name)){
+            $where['t_d_university.dxmc'] = $name;
+        }
+        $collectData=M('teacher_collect')->join('t_d_university ON t_teacher_collect.schoolid = t_d_university.id')->where($where)->field("t_d_university.id,t_d_university.logo,t_d_university.dxmc,t_d_university.province,t_d_university.is985,t_d_university.is211,t_d_university.iszizhu")->select();
+        if($collectData){
+           
+           $data=$collectData;
+           $this->apiReturn(100,'操作成功',$data);
+
+        }else{
+           $data=array();
+           $this->apiReturn(0,'操作失败',$data);
+
+        }
+    }
+    /*删除关注的大学*/
+    public function deldaxue(){
+        $sid=$_POST['schoolid'];
+        $sid=json_decode($sid,ture);
+
+        $tid=$_POST['teacherid'];
+        $where['teacherid']=$tid;
+        $where['schoolid']=array('in',$sid);
+        $where['_logic'] = 'and';
+        $true=M('teacher_collect')->where($where)->delete();
+        if($true){
+           $data="删除成功";
+           $this->apiReturn(100,'操作成功',$data); 
+        }else{
+           $data="删除失败";
+           $this->apiReturn(0,'操作失败',$data); 
+
+        }
+    }
+    //关注专业
+    public function guanzhuzhuanye(){
+        echo "功能待与pc端确认！";
+
+    }
+    //报考方案
+    public function baokaofangan(){
+       $tid=$_POST['teacherid'];
+       //通过teacherid找到下面所有的学生
+       $where['TeacherID']=$tid;
+       $res=M('student')->where($where)->field('studentid')->select();
+       if($res){
+         foreach($res as $k1=>$v1){
+             $sid=$v1['studentid'];
+             $which['user_id']=$sid;
+             $plands=M('d_user_planned')->where($which)->select();//志愿填报记录
+             if($plands){
+                 foreach ($plands as $k => $v) {
+                     $provincename['ProvinceID']=$v['province_id'];
+                     $provininfos=M('provinces')->where($provincename)->find();
+                     $studentname['StudentID']=$v['user_id'];
+                     $studentinfos=M('student')->where($studentname)->find();
+                     $batch['id']=$v['batchid'];
+                     $batchinfos=M('d_batch')->where($batch)->find();
+                     $plands[$k]['province']=$provininfos['provincesname'];
+                     $plands[$k]['studentname']=$studentinfos['studentname'];
+                     $plands[$k]['studentid']=$studentinfos['studentid'];
+                     $plands[$k]['batch']=$batchinfos['name'];
+                 }
+                 //$data[]=$plands;
+             }
+              foreach($plands as $k=>$v){
+                $data[]=$v;
+
+              }
+
+             
+
+         }
+         $this->apiReturn(100,'操作成功',$data);
+       }else{
+         $data="该教师没有学生";
+         $this->apiReturn(0,'操作失败',$data);
+       }
+       
+
+    }
+    //我的论文
+    public function wodelunwen(){
+
+        echo "功能待与pc端确认！";
+
+    }
+    //我的论文
+    public function wodeshouchang(){
+
+        echo "功能待与pc端确认！";
+    }
+    //我的论文
+    public function wodexiazai(){
+
+        echo "功能待与pc端确认！";
+
+        
+    }
+    //我的论文
+    public function wodeshangchuan(){
+        
+        echo "功能待与pc端确认！";
+        
+    }
+    //我的论文
+    public function wodezhengwen(){
+
+        echo "功能待与pc端确认！";
+        
+    }
+    //个人信息
+    public function savememberinfo(){
+
+       $date=$_POST['date'];
+       $teacherid=$_POST['teacherid'];
+       $where['TeacherID']=$teacherid;
+       $data['Birthday']=$date;
+       $res=M('teacher')->where($where)->save($data);
+       if($res){
+
+         $data="修改成功";
+         $this->apiReturn(100,'请求成功',$data);
+
+       }else{
+
+         $data="修改失败";
+         $this->apiReturn(0,'请求成功',$data);
+
+       }
+
+
+    }
+
+
 }

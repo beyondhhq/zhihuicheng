@@ -37,7 +37,7 @@ class KaogangshuomingController extends DomainController {
     public function getdefaulzj()
     {
         // 科目列表
-        $kemu = M('student_gkdg')->field('name')->group('name')->select();
+        $kemu = M('student_gkdg')->field('name')->order('id desc')->group('name')->select();
         $k = array();
         $i=0;
         foreach ($kemu as $key => $value) {

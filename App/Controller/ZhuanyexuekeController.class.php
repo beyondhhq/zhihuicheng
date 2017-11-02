@@ -12,6 +12,7 @@ class ZhuanyexuekeController extends DomainController {
         //北京的大学
         $where['province']='北京';
         $school=M('d_university')->where($where)->select();
+        $count=M('d_university')->where($where)->count();
         //北京的本科大学
         foreach($school as $k=>$v){
             $schools.=$v['dxmc'].',';
@@ -33,7 +34,7 @@ class ZhuanyexuekeController extends DomainController {
         );
         $this->apiReturn(100,'读取成功',$data);
     }
-    /*专业学科对照列表检索*/
+    /*专业学科对照列表检索*/   
     public function search(){
         $subject['province']=$_POST['province'];
         $subject['xlcc']=array("like","%{$_POST['xueli']}%");

@@ -93,7 +93,7 @@ class MemberController extends DomainController {
         $jilu=M('ziwochenshu')->where($where)->field('id,studentid,studentname,gradename,title as handline,classname,time,status,content')->find();
         $comment['zid']=$id;
         $commenture=M('comment_ziwochenshu')->where($comment)->order('id DESC')->select();
-        $data['info']['newjson']=$jilu;
+        $data['info']=$jilu;
         $data['comment']=$commenture;
         $this->apiReturn(100,'读取成功',$data);
 
@@ -499,5 +499,363 @@ class MemberController extends DomainController {
         $data='提交成功';
         $this->apiReturn(100,'提交成功',$data);
     }
+    //我的课表
+    public function wodekebiao(){
+        $studentid=$_POST['studentid'];
+        $classid=$_POST['classid'];
+        $cid=$_POST['cid'];exit;
+        $banji['ClassId']=$classid;
+        $banji=M('class')->where($banji)->find();
+        //dump($banji);
+        $nianji=$banji['enrollmenttime']; //高几
+        $activa['id']=session('cid');
+        $activa=M('activation')->where($activa)->find();
+        $actime=strtotime($activa['actime']);
+        $actimeY=date("Y",$actime); //激活年份
+        $actimeM=date("m",$actime); //激活月份
+        //dump($activa);
+        $where['studentid']=$studentid;
+        $student=M('student')->where($where)->find();
+        $anianji=$student['nianji'];
+        $chazhi=$actimeY-$anianji;
+        
+        if($chazhi =='0'){
+            $gaokao=$actimeY+3;
+        }elseif($chazhi =='1'){
+            $gaokao=$actimeY+2;
+        }else{
+            $gaokao=$actimeY+1;
+        }
+
+        $gaokao=$gaokao.'-06-07'; //高考年月日
+        $gaokao_list=explode("-",$gaokao);
+        $nowtime=date('Y-m-d',time());//今天日期
+        $actimeYmd_list=explode("-",$nowtime);
+        $day1=mktime(0,0,0,$gaokao_list[1],$gaokao_list[2],$gaokao_list[0]);
+        $day2=mktime(0,0,0,$actimeYmd_list[1],$actimeYmd_list[2],$actimeYmd_list[0]);
+        $days=round(($day1-$day2)/3600/24);
+        if($days < 1){
+            $days=0;
+        }
+        
+      
+        
+    }
+    /*创建计划*/
+    public function createplan(){
+        $id = $_POST['id'];
+        $name = $_POST['biaoti'];
+        $content = $_POST['neirong'];
+        $start = $_POST['begin'];
+        $end = $_POST['over'];
+        $type = $_POST['type'];
+        $status = $_POST['zhuangtai'];
+        $studentid = $_POST['studentid'];
+        $user = M('student_project');
+        if($id){
+            $where['id'] = $id;
+            $info['name'] = $name;
+            $info['content'] = $content;
+            $info['studentid'] = $studentid;
+            $info['type'] = $type;
+            $info['status'] = $status;
+            $info['starttime'] = $start;
+            $info['endtime'] = $end;
+            $user->where($where)->save($info);
+        }else{
+            $info['name'] = $name;
+            $info['content'] = $content;
+            $info['studentid'] = $studentid;
+            $info['type'] = $type;
+            $info['status'] = $status;
+            $info['starttime'] = $start;
+            $info['endtime'] = $end;
+            $info['time'] = date("Y-m-d");
+            $user->add($info);
+        }
+        if($user){
+            $data = 'yes';
+            $this->apiReturn(100,'提交成功',$data);
+        }else{
+            $data = 'no';
+            $this->apiReturn(0,'提交失败',$data);
+        } 
+    }
+    public function planlist(){
+       $studentid=$_POST['studentid'];
+       $type=$_POST['type'];
+       $where['studentid']=$studentid;
+       if($type){
+          $where['type']=$type;
+       }
+       $info=M('student_project')->where($where)->order('id DESC')->select();
+       $this->apiReturn(100,'提交成功',$info);
+    }
+    //计划详情
+    public function plandetail(){
+        $id = $_POST['id'];
+        $where['id'] = $id;
+        $data = M('student_project')->where($where)->find();
+        $this->apiReturn(100,'提交成功',$data);
+    }
+    //删除计划
+    public function delplan(){
+        $id = $_POST['id'];
+        $where['id'] = $id;
+        $result = M('student_project')->where($where)->delete();
+        if($result){
+            $data = 1;
+            $this->apiReturn(100,'删除成功',$data);
+        }else{
+            $data = 0;
+            $this->apiReturn(0,'删除失败',$data);
+        }
+        
+
+    }
+    /*我的成绩*/
+    public function wodechengji(){
+        echo "功能待确认";
+ 
+    }
+    /*我的小组*/
+    public function wodexiaozu(){
+        //小组信息查询
+        $teamwhere['studentid'] = $_POST['studentid'];
+        $infoteam = M('learn_team_member')->join(array('t_learn_team on t_learn_team.id = t_learn_team_member.teamid'))
+                    ->where($teamwhere)->order('t_learn_team.id DESC')->field('t_learn_team.*')->select();
+        if($infoteam){
+           $data=$infoteam;
+           $this->apiReturn(100,'操作成功',$data);
+
+        }else{
+           $data=array();
+           $this->apiReturn(0,'操作失败',$data);
+        }
+    }
+    /*我的小组详情*/
+    public function xiaozucon(){
+        $zuid=$_POST['id'];
+        $where['t_learn_team.id']=$zuid;
+        $res=M('learn_team')->join('left join t_learn_team_member on t_learn_team.id=t_learn_team_member.teamid left join t_student on t_learn_team_member.studentid=t_student.StudentID')->where($where)->field('t_learn_team.*,t_student.StudentName')->select();
+        if($res){
+           $data=$res;
+           $this->apiReturn(100,'操作成功',$data);
+
+        }else{
+           $data=array();
+           $this->apiReturn(0,'操作失败',$data);
+        }
+    }
+    /*关注专业*/
+    public function guanzhuzhuanye(){
+        echo "功能待确认";
+ 
+    }
+    /*教师评价列表*/
+    public function jiaoshipingjia(){
+        $student['studentid'] = $_POST['studentid'];
+        $type = isset($_POST['type']) ? $_POST['type'] : '测试结果';
+        
+        if(!empty($student)){
+            switch($type){
+                case "测试结果":
+                    $where['t_student_test_zonghe.studentid'] = $student['studentid'];
+                    $model = M('student_test_zonghe');
+                    $data  = $model->join('t_comment_zhuanyeqingxiang on t_comment_zhuanyeqingxiang.zid = t_student_test_zonghe.id')
+                    ->where($where)->order('t_student_test_zonghe.id DESC')->field('t_student_test_zonghe.*')->select();
+                    //dump($where);
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = '专业倾向报告';
+                    }
+                    break;
+                case "选科记录":
+                    $where['t_xuekebianzu.studentid'] = $student['studentid'];
+                    $model = M('xuekebianzu');
+                    $data  = $model->join('t_comment_xuankejilu on t_comment_xuankejilu.xid = t_xuekebianzu.id')
+                    ->where($where)->order('t_xuekebianzu.id DESC')->field('t_xuekebianzu.*')->select();
+                    foreach ($data as $key => $value) {
+                        $xuanke[] = $value['xname1'];
+                        $xuanke[] = $value['xname2'];
+                        $xuanke[] = $value['xname3'];
+                        $data[$key]['vname'] = implode(',',array_filter($xuanke));
+                    }
+                    break;
+
+                case "活动记录":
+                    $where['t_da_activation_record.StudentID'] = $student['studentid'];
+                    $model = M('da_activation_record');
+                    $data  = $model->join('t_comment_huodongjilu on t_comment_huodongjilu.hid = t_da_activation_record.id')
+                    ->where($where)->order('t_da_activation_record.id DESC')->field('t_da_activation_record.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['handline'];
+                    }
+                    break;
+
+                case "成长档案":
+                    $where['t_da_chengzhangdangan.studentid'] = $student['studentid'];
+                    $model = M('da_chengzhangdangan');
+                    $data  = $model->join('t_comment_chengzhangdangan on t_comment_chengzhangdangan.cid = t_da_chengzhangdangan.id')
+                    ->where($where)->order('t_da_chengzhangdangan.id DESC')->field('t_da_chengzhangdangan.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+
+                    break;
+
+                case "量化评价":
+                    $where['t_da_lianghuapj.studentid'] = $student['studentid'];
+                    $model = M('da_lianghuapj');
+                    $data  = $model->join('t_comment_zonghelianghua on t_comment_zonghelianghua.zid = t_da_lianghuapj.id')
+                    ->where($where)->order('t_da_lianghuapj.id DESC')->field('t_da_lianghuapj.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+                    break;
+
+                case "陈述报告":
+                    $where['t_ziwochenshu.studentid'] = $student['studentid'];
+                    $model = M('ziwochenshu');
+                    $data  = $model->join('t_comment_ziwochenshu on t_comment_ziwochenshu.zid = t_ziwochenshu.id')
+                    ->where($where)->order('t_ziwochenshu.id DESC')->field('t_ziwochenshu.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = $value['title'];
+                    }
+                    break;
+
+                case "志愿填报":
+                    $where['t_d_user_planned.user_id'] = $student['studentid'];
+                    $model = M('d_user_planned');
+                    $data  = $model->join('t_comment_monizhiyuan on t_comment_monizhiyuan.mid = t_d_user_planned.id')
+                    ->where($where)->order('t_d_user_planned.id DESC')->field('t_d_user_planned.*')->select();
+                    foreach ($data as $key => $value) {
+                        $data[$key]['vname'] = '模拟志愿';
+                        $data[$key]['time'] = $value['create_date'];
+                    }
+                    break;
+            }
+            foreach($data as $k=>$v){
+                $id=$v['id'];
+              if(!empty($student)){
+                switch($type){
+                 case "测试结果":
+                    $wherer['zid'] = $id;
+                    $dat = M('comment_zhuanyeqingxiang')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "选科记录":
+                    $wherer['xid'] = $id;
+                    $dat = M('comment_xuankejilu')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "活动记录":
+                    $wherer['hid'] = $id;
+                    $dat = M('comment_huodongjilu')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "成长档案":
+                    $wherer['cid'] = $id;
+                    $dat = M('comment_chengzhangdangan')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "量化评价":
+                    $wherer['zid'] = $id;
+                    $dat = M('comment_zonghelianghua')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "陈述报告":
+                    $wherer['zid'] = $id;
+                    $dat = M('comment_ziwochenshu')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+
+                 case "志愿填报":
+                    $wherer['mid'] = $id;
+                    $dat = M('comment_monizhiyuan')->where($wherer)->find();
+                    $data[$k]['comment']=$dat;
+                    break;
+                }
+              }
+
+            }
+            $this->apiReturn(100,'请求成功',$data);
+        }
+ 
+    }
+    //教师评价详情
+    public function jiaoshipingjiacon(){
+        $student = $_POST['studentid'];
+        $id=$_POST['id'];
+        $type = isset($_POST['type']) ? $_POST['type'] : '测试结果';
+        if(!empty($student)){
+            switch($type){
+                case "测试结果":
+                    $where['zid'] = I('post.id');
+                    $data = M('comment_zhuanyeqingxiang')->where($where)->find();
+                    break;
+
+                case "选科记录":
+                    $where['xid'] = I('post.id');
+                    $data = M('comment_xuankejilu')->where($where)->find();
+                    break;
+
+                case "活动记录":
+                    $where['hid'] = I('post.id');
+                    $data = M('comment_huodongjilu')->where($where)->find();
+                    break;
+
+                case "成长档案":
+                    $where['cid'] = I('post.id');
+                    $data = M('comment_chengzhangdangan')->where($where)->find();
+                    break;
+
+                case "量化评价":
+                    $where['zid'] = I('post.id');
+                    $data = M('comment_zonghelianghua')->where($where)->find();
+                    break;
+
+                case "陈述报告":
+                    $where['zid'] = I('post.id');
+                    $data = M('comment_ziwochenshu')->where($where)->find();
+                    break;
+
+                case "志愿填报":
+                    $where['mid'] = I('post.id');
+                    $data = M('comment_monizhiyuan')->where($where)->find();
+                    break;
+            }
+        }
+        $this->apiReturn(100,'请求成功',$data);
+
+    }
+    //个人中心修改信息保存
+    public function savememberinfo(){
+
+       $date=$_POST['date'];
+       $studentid=$_POST['studentid'];
+       $where['StudentID']=$studentid;
+       $data['Birthday']=$date;
+       $res=M('student')->where($where)->save($data);
+       if($res){
+
+         $data="修改成功";
+         $this->apiReturn(100,'请求成功',$data);
+
+       }else{
+
+         $data="修改失败";
+         $this->apiReturn(0,'请求成功',$data);
+
+       }
+
+
+    }
+
+
 
 }
